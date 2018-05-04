@@ -1,0 +1,24 @@
+<!-- extend from base layout -->
+{% extends "base.html" %}
+
+{% block head %}
+<link rel="stylesheet" href="/static/css/signin.css" crossorigin="anonymous">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <form class="form-signin" method="post" action="login">
+        <h2 class="form-signin-heading">Please sign in</h2>
+        <label for="name" class="sr-only">Username</label>
+        <input name="name" id="name" class="form-control" placeholder="Username" required="" autofocus="">
+        <label for="inputPassword" class="sr-only">Password</label>
+        <input type="password" name="passwd" id="inputPassword" class="form-control" placeholder="Password" required="">
+        <div class="checkbox">
+            <label>
+                <input type="checkbox" value="remember-me"> Remember me
+            </label>
+        </div>
+        <button class="btn btn-lg btn-primary btn-block" type="submit">Sign in</button>
+    </form>
+</div>
+{% endblock %}

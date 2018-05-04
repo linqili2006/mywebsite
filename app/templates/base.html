@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh-CN">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="/static/css/bootstrap.min.css" crossorigin="anonymous">
+        <link rel="stylesheet" href="/static/css/bootstrap-reboot.min.css" crossorigin="anonymous">
+        {% block head %}{% endblock %}
+    </head>
+    <body>
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        <ul>
+        {% for message in messages %}
+            <li>{{ message }} </li>
+        {% endfor %}
+        </ul>
+        {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+        <script src="/static/js/jquery-3.3.1.slim.min.js" crossorigin="anonymous"></script>
+        <script src="/static/js/popper.min.js"  crossorigin="anonymous"></script>
+        <script src="/static/js/bootstrap.min.js"  crossorigin="anonymous"></script>
+    </body>
+</html>

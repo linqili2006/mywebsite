@@ -1,0 +1,17 @@
+<!-- extend from base layout -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-sm"> Name </div>
+        <div class="col-sm"> Phone Number </div>
+    </div>
+    {% for player in players %}
+    <div class="row">
+        <div class="col-sm"> {{player.name}} </div>
+        <div class="col-sm"> {{player.phone}} </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
