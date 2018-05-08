@@ -2,20 +2,310 @@
 {% extends "base.html" %}
 
 {% block head %}
-<link rel="stylesheet" href="/static/css/admin.css" crossorigin="anonymous">
+<link rel="stylesheet" href="/static/js/jqwidgets/styles/jqx.base.css" type="text/css" />
+<script type="text/javascript" src="/static/js/jquery-1.11.1.min.js"></script>
+<script type="text/javascript" src="/static/js/jqwidgets/jqxcore.js"></script>
+<script type="text/javascript" src="/static/js/jqwidgets/jqxtabs.js"></script>
+<script type="text/javascript" src="/static/js/jqwidgets/jqxdata.js"></script>
+<script type="text/javascript" src="/static/js/jqwidgets/jqxbuttons.js"></script>
+<script type="text/javascript" src="/static/js/jqwidgets/jqxscrollbar.js"></script>
+<script type="text/javascript" src="/static/js/jqwidgets/jqxmenu.js"></script>
+<script type="text/javascript" src="/static/js/jqwidgets/jqxgrid.js"></script>
+<script type="text/javascript" src="/static/js/jqwidgets/jqxgrid.selection.js"></script>
+<script type="text/javascript" src="/static/js/jqwidgets/jqxgrid.filter.js"></script>
+<script type="text/javascript" src="/static/js/jqwidgets/jqxlistbox.js"></script>
+<script type="text/javascript" src="/static/js/jqwidgets/jqxdropdownlist.js"></script>
+<script type="text/javascript" src="/static/js/jqwidgets/jqxcheckbox.js"></script>
+<script type="text/javascript" src="/static/js/jqwidgets/jqxwindow.js"></script>
+<script type="text/javascript">
+    $(document).ready(function () {
+        var getJudgeAdapter = function () {
+            var source =
+            {
+                url:"/admin/judgeList",
+                datatype: "json",
+                datafields:[
+                    { name: 'id', type: 'int' },
+                    { name: 'name', type: 'string' },
+                    { name: 'createDate', type: 'string' },
+                    { name: 'comment', type: 'string' },
+                ],
+                id:'id',
+                updaterow: function (rowid, rowdata, commit) {
+                    // synchronize with the server - send update command
+                    // call commit with parameter true if the synchronization with the server is successful
+                    // and with parameter false if the synchronization failed.
+                    commit(true);
+                }
+            };
+
+            var dataAdapter = new $.jqx.dataAdapter(source);
+            return dataAdapter;
+        }
+
+        var getPlayerAdapter = function () {
+            var source =
+            {
+                url:"/admin/playerList",
+                datatype: "json",
+                datafields:[
+                    { name: 'id', type: 'int' },
+                    { name: 'name', type: 'string' },
+                    { name: 'phone', type: 'string' },
+                    { name: 'score', type: 'int' },
+                    { name: 'createDate', type: 'string' },
+                    { name: 'comment', type: 'string' },
+                ],
+                id:'id',
+                updaterow: function (rowid, rowdata, commit) {
+                    // synchronize with the server - send update command
+                    // call commit with parameter true if the synchronization with the server is successful
+                    // and with parameter false if the synchronization failed.
+                    commit(true);
+                }
+            };
+
+            var dataAdapter = new $.jqx.dataAdapter(source);
+            return dataAdapter;
+        }
+
+        $("#addJudgeWindow").jqxWindow({ resizable: false,  autoOpen: false, width: 210, height: 230});
+        var initJudgeGrid = function () {
+            gridId = "#judgeGrid";
+            // initialize jqxGrid
+            $(gridId).jqxGrid(
+            {
+                width: '100%',
+                height: '100%',
+                source: getJudgeAdapter(),
+                showtoolbar: true,
+                rendertoolbar: function (statusbar) {
+                    // appends buttons to the status bar.
+                    var container = $("<div style='overflow: hidden; position: relative; margin: 5px;'></div>");
+                    var addButton = $("<div style='float: left; margin-left: 5px;'><img style='position: relative; margin-top: 2px;' src='/static/img/add.png'/><span style='margin-left: 4px; position: relative; top: -3px;'>Add</span></div>");
+                    var deleteButton = $("<div style='float: left; margin-left: 5px;'><img style='position: relative; margin-top: 2px;' src='/static/img/close.png'/><span style='margin-left: 4px; position: relative; top: -3px;'>Delete</span></div>");
+                    container.append(addButton);
+                    container.append(deleteButton);
+                    statusbar.append(container);
+                    addButton.jqxButton({  width: 60, height: 20 });
+                    deleteButton.jqxButton({  width: 65, height: 20 });
+                    // add new row.
+                    addButton.click(function (event) {
+                        $("#addJudgeWindow").jqxWindow({isModal:true});
+                        $("#addJudgeWindow").jqxWindow('open');
+                    });
+                    // delete selected row.
+                    deleteButton.click(function (event) {
+                        var selectedrowindex = $(gridId).jqxGrid('getselectedrowindex');
+                        if (selectedrowindex != -1) {
+                            var name = $(gridId).jqxGrid('getcellvalue', selectedrowindex, "name")
+                            var id = $(gridId).jqxGrid('getrowid', selectedrowindex);
+                            if (confirm("Are you sure to delete " + name + "?")) {
+                                $.ajax({
+                                    "url":"/admin/delJudge",
+                                    "method":"POST",
+                                    "data":{
+                                        'id':id,
+                                    },
+                                    "dataType":"json",
+                                    "success":function (data) {
+                                        if (data.code == 0) {
+                                            $(gridId).jqxGrid({ source: getJudgeAdapter() });
+                                        } else {
+                                            alert(data.message)
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                    });
+                },
+                columns: [
+                  { text: 'ID', datafield: 'id', columntype: 'textbox', width: 120 },
+                  { text: 'Username', datafield: 'name', columntype: 'textbox', width: 120 },
+                  { text: 'Create Date', datafield: 'createDate', columntype: 'textbox', width: 170 },
+                  { text: 'Comment', datafield: 'comment', columntype: 'textbox' },
+                ]
+            });
+            $("#addJudgeWindow").on('close', function () {
+                $("#judgeName").val('');
+                $("#judgePasswd").val('');
+                $("#judgeComment").val('');
+            });
+            $("#addJudgeButton").click(function (){
+                $.ajax({
+                    "url":"/admin/addJudge",
+                    "method":"POST",
+                    "data":{
+                        'name':$("#judgeName").val(),
+                        'passwd':$("#judgePasswd").val(),
+                        'comment':$("#judgeComment").val(),
+                    },
+                    "dataType":"json",
+                    "success":function (data) {
+                        if (data.code == 0) {
+                            $(gridId).jqxGrid({ source: getJudgeAdapter() });
+                        } else {
+                            alert(data.message)
+                        }
+                    }
+                });
+                $("#addJudgeWindow").jqxWindow('close');
+            });
+        }
+
+        $("#addPlayerWindow").jqxWindow({ resizable: false,  autoOpen: false, width: 210, height: 230});
+        var initPlayerGrid = function () {
+        gridId = "#playerGrid"
+        // initialize jqxGrid
+            $(gridId).jqxGrid(
+            {
+                width: '100%',
+                height: '100%',
+                source: getPlayerAdapter(),
+                showtoolbar: true,
+                rendertoolbar: function (statusbar) {
+                    // appends buttons to the status bar.
+                    var container = $("<div style='overflow: hidden; position: relative; margin: 5px;'></div>");
+                    var addButton = $("<div style='float: left; margin-left: 5px;'><img style='position: relative; margin-top: 2px;' src='/static/img/add.png'/><span style='margin-left: 4px; position: relative; top: -3px;'>Add</span></div>");
+                    var deleteButton = $("<div style='float: left; margin-left: 5px;'><img style='position: relative; margin-top: 2px;' src='/static/img/close.png'/><span style='margin-left: 4px; position: relative; top: -3px;'>Delete</span></div>");
+                    var editButton = $("<div style='float: left; margin-left: 5px;'><img style='position: relative; margin-top: 2px;' src='/static/img/refresh.png'/><span style='margin-left: 4px; position: relative; top: -3px;'>Edit</span></div>");
+                    container.append(addButton);
+                    container.append(deleteButton);
+                    container.append(editButton);
+                    statusbar.append(container);
+                    addButton.jqxButton({  width: 60, height: 20 });
+                    deleteButton.jqxButton({  width: 65, height: 20 });
+                    editButton.jqxButton({  width: 65, height: 20 });
+                    // add new row.
+                    addButton.click(function (event) {
+                        $("#addPlayerButton").show();
+                        $("#editPlayerButton").hide();
+                        $("#addPlayerWindow").jqxWindow({isModal:true});
+                        $("#addPlayerWindow").jqxWindow('open');
+                    });
+                    // delete selected row.
+                    deleteButton.click(function (event) {
+                        var selectedrowindex = $(gridId).jqxGrid('getselectedrowindex');
+                        if (selectedrowindex != -1) {
+                            var name = $(gridId).jqxGrid('getcellvalue', selectedrowindex, "name")
+                            var id = $(gridId).jqxGrid('getrowid', selectedrowindex);
+                            if (confirm("Are you sure to delete " + name + "?")) {
+                                $.ajax({
+                                    "url":"/admin/delPlayer",
+                                    "method":"POST",
+                                    "data":{
+                                        'id':id,
+                                    },
+                                    "dataType":"json",
+                                    "success":function (data) {
+                                        if (data.code == 0) {
+                                            $(gridId).jqxGrid({ source: getPlayerAdapter() });
+                                        } else {
+                                            alert(data.message)
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                    });
+                    editButton.click(function (event) {
+                        var selectedrowindex = $(gridId).jqxGrid('getselectedrowindex');
+                        if (selectedrowindex != -1) {
+                            var name = $(gridId).jqxGrid('getcellvalue', selectedrowindex, "name")
+                            var phone = $(gridId).jqxGrid('getcellvalue', selectedrowindex, "phone")
+                            var comment = $(gridId).jqxGrid('getcellvalue', selectedrowindex, "comment")
+                            var id = $(gridId).jqxGrid('getrowid', selectedrowindex);
+                            $("#playerId").val(id);
+                            $("#playerName").val(name);
+                            $("#playerPhone").val(phone);
+                            $("#playerComment").val(comment);
+                            $("#addPlayerButton").hide();
+                            $("#editPlayerButton").show();
+                            $("#addPlayerWindow").jqxWindow({isModal:true});
+                            $("#addPlayerWindow").jqxWindow('open');
+                        }
+                    });
+                },
+                columns: [
+                  { text: 'ID', datafield: 'id', columntype: 'textbox', width: 120 },
+                  { text: 'Username', datafield: 'name', columntype: 'textbox', width: 120 },
+                  { text: 'Phone Number', datafield: 'phone', columntype: 'textbox', width: 170 },
+                  { text: 'Create Date', datafield: 'createDate', columntype: 'textbox', width: 170 },
+                  { text: 'Comment', datafield: 'comment', columntype: 'textbox' },
+                ]
+            });
+            $("#addPlayerWindow").on('close', function () {
+                $("#playerId").val('');
+                $("#playerName").val('');
+                $("#playerPhone").val('');
+                $("#playerComment").val('');
+            });
+            $("#addPlayerButton").click(function (){
+                $.ajax({
+                    "url":"/admin/addPlayer",
+                    "method":"POST",
+                    "data":{
+                        'name':$("#playerName").val(),
+                        'phone':$("#playerPhone").val(),
+                        'comment':$("#playerComment").val(),
+                    },
+                    "dataType":"json",
+                    "success":function (data) {
+                        if (data.code == 0) {
+                            $(gridId).jqxGrid({ source: getPlayerAdapter() });
+                        } else {
+                            alert(data.message)
+                        }
+                    }
+                });
+                $("#addPlayerWindow").jqxWindow('close');
+            });
+            $("#editPlayerButton").click(function (){
+                $.ajax({
+                    "url":"/admin/editPlayer",
+                    "method":"POST",
+                    "data":{
+                        'id':$("#playerId").val(),
+                        'name':$("#playerName").val(),
+                        'phone':$("#playerPhone").val(),
+                        'comment':$("#playerComment").val(),
+                    },
+                    "dataType":"json",
+                    "success":function (data) {
+                        if (data.code == 0) {
+                            $(gridId).jqxGrid({ source: getPlayerAdapter() });
+                        } else {
+                            alert(data.message)
+                        }
+                    }
+                });
+                $("#addPlayerWindow").jqxWindow('close');
+            });
+        }
+
+        // init widgets.
+        var initWidgets = function (tab) {
+            switch (tab) {
+                case 0:
+                    initJudgeGrid();
+                    break;
+                case 1:
+                    initPlayerGrid()
+                    break;
+            }
+        }
+
+        $('#tabs').jqxTabs({ width: "100%", height: 600,  initTabContent: initWidgets });
+    });
+</script>
 {% endblock %}
 
 {% block content %}
 <div class="container">
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <a class="navbar-brand" href="#">Navbar</a>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <a class="navbar-brand" href="#">Mangement Platform</a>
         <div class="collapse navbar-collapse" id="navbarNavDropdown">
-        <ul class="navbar-nav">
-            <li class="nav-item active">
-                <a class="nav-link" href="#">Judge<span class="sr-only">(current)</span></a>
-            </li>
-            <li class="nav-item"> <a class="nav-link" href="#">Player</a> </li>
-        </ul>
         </div>
         <span class="navbar-text">
             Welcome, {{ g.user.name }}
@@ -26,59 +316,78 @@
     </nav>
 </div>
 <div class="container">
-    <div class="content">
-        <h2 class="page-header">Judge List</h2>
-        <div>
-            <button data-toggle="modal" data-target="#add" type="button" class="btn btn-success">Add </button>
-            <button data-toggle="modal" data-target="#remove" type="button" class="btn btn-danger">Remove</button>
-            <a data-toggle="modal" href="#addJudge" class="btn btn-primary btn-large">Add Judge</a>
-            <a data-toggle="modal" href="#addPlayer" class="btn btn-primary btn-large">Add Player</a>
+    <div id='tabs'>
+        <ul>
+            <li style="margin-left: 30px;">Judge</li>
+            <li>Player</li>
+        </ul>
+        <div style="overflow: hidden;">
+            <div id="judgeGrid" style="border:none;"> </div>
         </div>
-        <div class="table-responsive">
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>
-                            <input type="checkbox" id="checkAll">
-                        </th>
-                        <th>ID</th>
-                        <th>Name</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for judge in judges %}
-                    <tr>
-                        <td>
-                            <input type="checkbox" value="{{judge.id}}">
-                        </td>
-                        <td>{{judge.id}}</td>
-                        <td>{{judge.name}}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <div style="overflow: hidden;">
+            <div id="playerGrid" style="border:none;"> </div>
         </div>
-    <div>
+    </div>
 </div>
 <div class="container">
-    <div id="add" class="modal hide fade in" style="display:none;">
-        <div class="modal-header">
-            <a class="close" data-dismiss="modal">x</a>
-            <h3>Add Judge</h3>
+    <div id='jqxWidget'>
+        <div id="addJudgeWindow">
+            <div>
+                Add Judge
+            </div>
+            <div style="overflow: hidden;">
+                <div>
+                    Username
+                </div>
+                <div style='margin-top:5px;'>
+                    <input id='judgeName' type="text" name="name" class="jqx-input" style="width: 200px; height: 23px;" />
+                </div>
+                <div style="margin-top: 7px; clear: both;">
+                    Password
+                </div>
+                <div style='margin-top:5px;'>
+                    <input id='judgePasswd' type="password" name="passwd" class="jqx-input" style="width: 200px; height: 23px;" />
+                </div>
+                <div style="margin-top: 7px; clear: both;">
+                    comment
+                </div>
+                <div style='margin-top:5px;'>
+                    <input id='judgeComment' type="text" name="comment" class="jqx-input" style="width: 200px; height: 23px;" />
+                </div>
+                <div>
+                    <button type="button" style='margin-top: 15px; margin-left: 50px; float: right;' value="submit" id="addJudgeButton">submit</button>
+                </div>
+            </div>
         </div>
-        <div class="modal-body">
-            <form method="post" action="addJudge">
-                <div class="form-group">
-                    <label for="name">Judge</label>
-                    <input class="form-control" id="name" name="name">
+        <div id="addPlayerWindow">
+            <div>
+                Add/Edit Player
+            </div>
+            <div style="overflow: hidden;">
+                <div>
+                    Username
                 </div>
-                <div class="form-group">
-                    <label for="passwd">Password</label>
-                    <input type="password" class="form-control" id="passwd" name="passwd">
+                <div style='margin-top:5px;'>
+                    <input id='playerId' type="text" name="id" class="jqx-input" style="width: 200px; height: 23px;display:none;" />
+                    <input id='playerName' type="text" name="name" class="jqx-input" style="width: 200px; height: 23px;" />
                 </div>
-                 <button type="submit" class="btn btn-primary">Add</button>
-                 <button class="btn" data-dismiss="modal">close</button>
-            </form>
+                <div style="margin-top: 7px; clear: both;">
+                   phone 
+                </div>
+                <div style='margin-top:5px;'>
+                    <input id='playerPhone' type="text" name="phone" class="jqx-input" style="width: 200px; height: 23px;" />
+                </div>
+                <div style="margin-top: 7px; clear: both;">
+                    comment
+                </div>
+                <div style='margin-top:5px;'>
+                    <input id='playerComment' type="text" name="comment" class="jqx-input" style="width: 200px; height: 23px;" />
+                </div>
+                <div>
+                    <button type="button" style='margin-top: 15px; margin-left: 50px; float: right; display:none;' value="submit" id="addPlayerButton">submit</button>
+                    <button type="button" style='margin-top: 15px; margin-left: 50px; float: right; display:none;' value="submit" id="editPlayerButton">submit</button>
+                </div>
+            </div>
         </div>
     </div>
 </div>
