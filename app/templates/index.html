@@ -1,17 +1,245 @@
 <!-- extend from base layout -->
 {% extends "base.html" %}
 
+{% block head %}
+<script type="text/javascript" src="/static/js/jqwidgets/jqxgrid.edit.js"></script>  
+<script type="text/javascript" src="/static/js/jqwidgets/jqxmenu.js"></script>
+<script type="text/javascript" src="/static/js/jqwidgets/jqxdropdownlist.js"></script>
+<script type="text/javascript" src="/static/js/jqwidgets/jqxlistbox.js"></script>
+<script type="text/javascript" src="/static/js/jqwidgets/jqxnumberinput.js"></script>
+<script type="text/javascript">
+    $(document).ready(function () {
+        var playerAdapter = undefined;
+        var getInGamePlayerAdapter = function () {
+            if (!playerAdapter) {
+                var source =
+                {
+                    url:"/judge/players",
+                    datatype: "json",
+                    datafields:[
+                        { name: 'id', type: 'int' },
+                        { name: 'ranking', type: 'int' },
+                        { name: 'name', type: 'string' },
+                        { name: 'phone', type: 'string' },
+                        { name: 'score', type: 'int' },
+                        { name: 'comment', type: 'string' },
+                    ],
+                    id:'id',
+                };
+                playerAdapter = new $.jqx.dataAdapter(source);
+            }
+            return playerAdapter;
+        }
+
+        var availPlayerAdapter = undefined;
+        var getAvailPlayerAdapter = function () {
+            if (!availPlayerAdapter) {
+                var source =
+                {
+                    url:"/judge/availPlayers",
+                    datatype: "json",
+                    datafields:[
+                        { name: 'id', type: 'int' },
+                        { name: 'name', type: 'string' },
+                        { name: 'phone', type: 'string' },
+                        { name: 'comment', type: 'string' },
+                    ],
+                    id:'id',
+                };
+
+                availPlayerAdapter = new $.jqx.dataAdapter(source);
+            }
+            return availPlayerAdapter;
+        }
+
+        var initPlayerGrid = function () {
+            // initialize jqxGrid
+            $("#playerGrid").jqxGrid(
+            {
+                width: '100%',
+                height: 600,
+                editable: true,
+                source: getInGamePlayerAdapter(),
+                showtoolbar: true,
+                rendertoolbar: function (statusbar) {
+                    // appends buttons to the status bar.
+                    var container = $("<div style='overflow: hidden; position: relative; margin: 5px;'></div>");
+                    var addButton = $("<div style='float: left; margin-left: 5px;'><img style='position: relative; margin-top: 2px;' src='/static/img/add.png'/><span style='margin-left: 4px; position: relative;'>添加</span></div>");
+                    var deleteButton = $("<div style='float: left; margin-left: 5px;'><img style='position: relative; margin-top: 2px;' src='/static/img/close.png'/><span style='margin-left: 4px; position: relative;'>删除</span></div>");
+                    var restartButton = $("<div style='float: left; margin-left: 5px;'><img style='position: relative; margin-top: 2px;' src='/static/img/refresh.png'/><span style='margin-left: 4px; position: relative;'>重新开始</span></div>");
+                    container.append(addButton);
+                    container.append(deleteButton);
+                    container.append(restartButton);
+                    statusbar.append(container);
+                    addButton.jqxButton({  width: 60, height: 20 });
+                    deleteButton.jqxButton({  width: 65, height: 20 });
+                    restartButton.jqxButton({  width: 90, height: 20 });
+                    // add new row.
+                    addButton.click(function (event) {
+                        $("#playerFindWindow").jqxWindow({isModal:true});
+                        $("#playerFindWindow").jqxWindow('open');
+                    });
+                    // delete selected row.
+                    deleteButton.click(function (event) {
+                        var grid = $("#playerGrid");
+                        var selectedrowindex = grid.jqxGrid('getselectedrowindex');
+                        if (selectedrowindex != -1) {
+                            var name = grid.jqxGrid('getcellvalue', selectedrowindex, "name")
+                            var id = grid.jqxGrid('getrowid', selectedrowindex);
+                            if (confirm("你确定要将玩家 " + name + " 从游戏中删除吗?")) {
+                                $.ajax({
+                                    "url":"/judge/delPlayerFromGame",
+                                    "method":"POST",
+                                    "data":{
+                                        'id':id,
+                                    },
+                                    "dataType":"json",
+                                    "success":function (data) {
+                                        if (data.code == 0) {
+                                            playerAdapter.dataBind();
+                                        } else {
+                                            alert(data.message)
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                    });
+                    restartButton.click(function (event) {
+                        if (confirm("你确定要重新开始游戏吗？")) {
+                            $.ajax({
+                                "url":"/judge/delPlayerFromGame",
+                                "method":"POST",
+                                "data":{
+                                    'deleteAll':1,
+                                },
+                                "dataType":"json",
+                                "success":function (data) {
+                                    if (data.code == 0) {
+                                        playerAdapter.dataBind();
+                                    } else {
+                                        alert(data.message)
+                                    }
+                                }
+                            });
+                        }
+                    });
+                },
+                columns: [
+                  { text: '排名', datafield: 'ranking', columntype: 'textbox', width: 120, editable:false },
+                  { text: '用户名', datafield: 'name', columntype: 'textbox', width: 120, editable:false },
+                  { text: '电话号码', datafield: 'phone', columntype: 'textbox', width: 170, editable:false },
+                  { text: '积分', datafield: 'score', columntype: 'numberinput', width: 170, 
+                      initeditor: function (row, cellvalue, editor) {
+                        editor.jqxNumberInput({ decimalDigits: 0 });
+                      }
+                  },
+                  { text: '备注', datafield: 'comment', columntype: 'textbox', editable:false},
+                ]
+            })
+            .on('cellendedit', function (event) {
+                var args = event.args;
+                var cellValue = args.value;
+                var oldValue = args.oldvalue;
+                if (cellValue != oldValue) {
+                    $.ajax({
+                        "url":"/judge/updateScore",
+                        "method":"POST",
+                        "data":{
+                            'id':args.row.id,
+                            'score':cellValue,
+                        },
+                        "dataType":"json",
+                        "success":function (data) {
+                            if (data.code == 0) {
+                                playerAdapter.dataBind();
+                            } else {
+                                alert(data.message)
+                            }
+                        }
+                    });
+                 }
+            });
+        }
+
+        var initFindPlayerGrid = function () {
+            // initialize jqxGrid
+            $("#playerFindGrid").jqxGrid(
+            {
+                width: '100%',
+                height: '100%',
+                source: getAvailPlayerAdapter(),
+                selectionmode:'multiplerows',
+                showtoolbar: true,
+                showfilterrow: true,
+                filterable: true,
+                rendertoolbar: function (statusbar) {
+                    // appends buttons to the status bar.
+                    var container = $("<div style='overflow: hidden; position: relative; margin: 5px;'></div>");
+                    var addButton = $("<div style='float: left; margin-left: 5px;'><img style='position: relative; margin-top: 2px;' src='/static/img/add.png'/><span style='margin-left: 4px; position: relative;'>添加</span></div>");
+                    container.append(addButton);
+                    statusbar.append(container);
+                    addButton.jqxButton({  width: 60, height: 20 });
+                    // add new row.
+                    addButton.click(function (event) {
+                        var grid = $("#playerFindGrid");
+                        var selectedrowindexes = grid.jqxGrid('getselectedrowindexes');
+                        var ids = [];
+                        for (var index in selectedrowindexes) {
+                            ids.push(grid.jqxGrid('getrowid', index));
+                        }
+                        $.ajax({
+                            "url":"/judge/addPlayerToGame",
+                            "method":"POST",
+                            "data":{
+                                'ids':ids.toString(),
+                            },
+                            "dataType":"json",
+                            "success":function (data) {
+                                if (data.code == 0) {
+                                    playerAdapter.dataBind();
+                                } else {
+                                    alert(data.message)
+                                }
+                            }
+                        });
+                        $("#playerFindWindow").jqxWindow("close");
+                    });
+                },
+                columns: [
+                  { text: '用户名', datafield: 'name', columntype: 'textbox', width: 120 },
+                  { text: '电话号码', datafield: 'phone', width: 170 },
+                  { text: '备注', datafield: 'comment', columntype: 'textbox'},
+                ]
+            });
+        }
+        $("#playerFindWindow").jqxWindow({ resizable: false,  autoOpen: false, width: 700, height: 300});
+        $("#playerFindWindow").on('open', function () {
+            var grid = $("#playerFindGrid");
+            grid.jqxGrid('clearselection');
+            availPlayerAdapter.dataBind();
+        });
+        $("#playerFindWindow").on('close', function () {
+            $("#playerFindGrid").jqxGrid('clearfilters');
+        });
+        initPlayerGrid();
+        initFindPlayerGrid();
+    });
+</script>
+{% endblock %}
+
 {% block content %}
 <div class="container">
-    <div class="row">
-        <div class="col-sm"> Name </div>
-        <div class="col-sm"> Phone Number </div>
+    <div id='jqxWidget'>
+        <div id="playerGrid"> </div>
+        <div id="playerFindWindow"> 
+            <div>
+                添加玩家 
+            </div>
+            <div style="overflow: hidden;">
+                <div id="playerFindGrid" style='margin-top:5px;'> </div>
+            </div>
+        </div>
     </div>
-    {% for player in players %}
-    <div class="row">
-        <div class="col-sm"> {{player.name}} </div>
-        <div class="col-sm"> {{player.phone}} </div>
-    </div>
-    {% endfor %}
 </div>
 {% endblock %}
