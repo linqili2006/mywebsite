@@ -9,57 +9,56 @@
 <script type="text/javascript" src="/static/js/jqwidgets/jqxnumberinput.js"></script>
 <script type="text/javascript">
     $(document).ready(function () {
-        var playerAdapter = undefined;
-        var getInGamePlayerAdapter = function () {
-            if (!playerAdapter) {
-                var source =
-                {
-                    url:"/judge/players",
-                    datatype: "json",
-                    datafields:[
-                        { name: 'id', type: 'int' },
-                        { name: 'ranking', type: 'int' },
-                        { name: 'name', type: 'string' },
-                        { name: 'phone', type: 'string' },
-                        { name: 'score', type: 'int' },
-                        { name: 'comment', type: 'string' },
-                    ],
-                    id:'id',
-                };
-                playerAdapter = new $.jqx.dataAdapter(source);
-            }
-            return playerAdapter;
+        var getPlayersAdapter = function (url) {
+            var source =
+            {
+                url:url,
+                datatype: "json",
+                datafields:[
+                    { name: 'id', type: 'int' },
+                    { name: 'ranking', type: 'int' },
+                    { name: 'name', type: 'string' },
+                    { name: 'phone', type: 'string' },
+                    { name: 'score', type: 'int' },
+                    { name: 'comment', type: 'string' },
+                ],
+                id:'id',
+            };
+            var adapter = new $.jqx.dataAdapter(source);
+            return adapter;
         }
 
-        var availPlayerAdapter = undefined;
         var getAvailPlayerAdapter = function () {
-            if (!availPlayerAdapter) {
-                var source =
-                {
-                    url:"/judge/availPlayers",
-                    datatype: "json",
-                    datafields:[
-                        { name: 'id', type: 'int' },
-                        { name: 'name', type: 'string' },
-                        { name: 'phone', type: 'string' },
-                        { name: 'comment', type: 'string' },
-                    ],
-                    id:'id',
-                };
+            var source =
+            {
+                url:"/judge/availPlayers",
+                datatype: "json",
+                datafields:[
+                    { name: 'id', type: 'int' },
+                    { name: 'name', type: 'string' },
+                    { name: 'phone', type: 'string' },
+                    { name: 'score', type: 'int' },
+                    { name: 'comment', type: 'string' },
+                ],
+                id:'id',
+            };
 
-                availPlayerAdapter = new $.jqx.dataAdapter(source);
-            }
-            return availPlayerAdapter;
+            var adapter = new $.jqx.dataAdapter(source);
+            return adapter;
         }
+
+        var inGamePlayersAdapter = getPlayersAdapter("/judge/players");
+        var playersAdapter = getPlayersAdapter("/players");
+        var availPlayersAdapter = getAvailPlayerAdapter();
 
         var initPlayerGrid = function () {
             // initialize jqxGrid
             $("#playerGrid").jqxGrid(
             {
                 width: '100%',
-                height: 600,
+                height: '100%',
                 editable: true,
-                source: getInGamePlayerAdapter(),
+                source: inGamePlayersAdapter,
                 showtoolbar: true,
                 rendertoolbar: function (statusbar) {
                     // appends buttons to the status bar.
@@ -96,7 +95,7 @@
                                     "dataType":"json",
                                     "success":function (data) {
                                         if (data.code == 0) {
-                                            playerAdapter.dataBind();
+                                            inGamePlayersAdapter.dataBind();
                                         } else {
                                             alert(data.message)
                                         }
@@ -116,7 +115,7 @@
                                 "dataType":"json",
                                 "success":function (data) {
                                     if (data.code == 0) {
-                                        playerAdapter.dataBind();
+                                        inGamePlayersAdapter.dataBind();
                                     } else {
                                         alert(data.message)
                                     }
@@ -152,7 +151,7 @@
                         "dataType":"json",
                         "success":function (data) {
                             if (data.code == 0) {
-                                playerAdapter.dataBind();
+                                inGamePlayersAdapter.dataBind();
                             } else {
                                 alert(data.message)
                             }
@@ -168,7 +167,7 @@
             {
                 width: '100%',
                 height: '100%',
-                source: getAvailPlayerAdapter(),
+                source: availPlayersAdapter,
                 selectionmode:'multiplerows',
                 showtoolbar: true,
                 showfilterrow: true,
@@ -197,7 +196,7 @@
                             "dataType":"json",
                             "success":function (data) {
                                 if (data.code == 0) {
-                                    playerAdapter.dataBind();
+                                    inGamePlayersAdapter.dataBind();
                                 } else {
                                     alert(data.message)
                                 }
@@ -209,6 +208,7 @@
                 columns: [
                   { text: '用户名', datafield: 'name', columntype: 'textbox', width: 120 },
                   { text: '电话号码', datafield: 'phone', width: 170 },
+                  { text: '积分', datafield: 'score', width: 170 },
                   { text: '备注', datafield: 'comment', columntype: 'textbox'},
                 ]
             });
@@ -217,21 +217,76 @@
         $("#playerFindWindow").on('open', function () {
             var grid = $("#playerFindGrid");
             grid.jqxGrid('clearselection');
-            availPlayerAdapter.dataBind();
+            availPlayersAdapter.dataBind();
         });
         $("#playerFindWindow").on('close', function () {
             $("#playerFindGrid").jqxGrid('clearfilters');
         });
-        initPlayerGrid();
-        initFindPlayerGrid();
+
+        var initScoreGrid = function () {
+            // initialize jqxGrid
+            $("#scoreGrid").jqxGrid(
+            {
+                width: '100%',
+                height: '100%',
+                source: playersAdapter,
+                showtoolbar: true,
+                rendertoolbar: function (statusbar) {
+                    // appends buttons to the status bar.
+                    var container = $("<div style='overflow: hidden; position: relative; margin: 5px;'></div>");
+                    var refreshButton = $("<div style='float: left; margin-left: 5px;'><img style='position: relative; margin-top: 2px;' src='/static/img/refresh.png'/><span style='margin-left: 4px; position: relative;'>刷新</span></div>");
+                    container.append(refreshButton);
+                    statusbar.append(container);
+                    refreshButton.jqxButton({  width: 60, height: 20 });
+                    // add new row.
+                    refreshButton.click(function (event) {
+                        playersAdapter.dataBind();
+                    });
+                },
+                columns: [
+                  { text: '排名', datafield: 'ranking', columntype: 'textbox', width: 120 },
+                  { text: '用户名', datafield: 'name', columntype: 'textbox', width: 120 },
+                  { text: '电话号码', datafield: 'phone', columntype: 'textbox', width: 170 },
+                  { text: '积分', datafield: 'score', columntype: 'numberinput', width: 170 },
+                  { text: '备注', datafield: 'comment', columntype: 'textbox'},
+                ]
+            });
+        }
+
+        // init widgets.
+        var initWidgets = function (tab) {
+            switch (tab) {
+                case 0:
+                    initPlayerGrid();
+                    initFindPlayerGrid();
+                    break;
+                case 1:
+                    initScoreGrid()
+                    break;
+            }
+        }
+        $('#tabs').jqxTabs({ width: "100%", height: 600,  initTabContent: initWidgets });
     });
 </script>
 {% endblock %}
 
 {% block content %}
 <div class="container">
+    <div id='tabs'>
+        <ul>
+            <li style="margin-left: 30px;">游戏</li>
+            <li>积分榜</li>
+        </ul>
+        <div style="overflow: hidden;">
+            <div id="playerGrid" style="border:none;"> </div>
+        </div>
+        <div style="overflow: hidden;">
+            <div id="scoreGrid" style="border:none;"> </div>
+        </div>
+    </div>
+</div>
+<div class="container">
     <div id='jqxWidget'>
-        <div id="playerGrid"> </div>
         <div id="playerFindWindow"> 
             <div>
                 添加玩家 

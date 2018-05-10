@@ -2,7 +2,6 @@
 {% extends "base.html" %}
 
 {% block head %}
-<script type="text/javascript" src="/static/js/jqwidgets/jqxtabs.js"></script>
 <script type="text/javascript">
     $(document).ready(function () {
         var judgeAdapter = undefined;
@@ -10,7 +9,7 @@
             if (!judgeAdapter) {
                 var source =
                 {
-                    url:"/admin/judgeList",
+                    url:"/admin/judges",
                     datatype: "json",
                     datafields:[
                         { name: 'id', type: 'int' },
@@ -31,7 +30,7 @@
             if (!playerAdapter) {
                 var source =
                 {
-                    url:"/admin/playerList",
+                    url:"/admin/players",
                     datatype: "json",
                     datafields:[
                         { name: 'id', type: 'int' },
@@ -80,7 +79,7 @@
                         if (selectedrowindex != -1) {
                             var name = grid.jqxGrid('getcellvalue', selectedrowindex, "name")
                             var id = grid.jqxGrid('getrowid', selectedrowindex);
-                            if (confirm("Are you sure to delete " + name + "?")) {
+                            if (confirm("你确定要删除 " + name + " 吗?")) {
                                 $.ajax({
                                     "url":"/admin/delJudge",
                                     "method":"POST",
@@ -149,13 +148,16 @@
                     var addButton = $("<div style='float: left; margin-left: 5px;'><img style='position: relative; margin-top: 2px;' src='/static/img/add.png'/><span style='margin-left: 4px; position: relative;'>添加</span></div>");
                     var deleteButton = $("<div style='float: left; margin-left: 5px;'><img style='position: relative; margin-top: 2px;' src='/static/img/close.png'/><span style='margin-left: 4px; position: relative;'>删除</span></div>");
                     var editButton = $("<div style='float: left; margin-left: 5px;'><img style='position: relative; margin-top: 2px;' src='/static/img/refresh.png'/><span style='margin-left: 4px; position: relative;'>编辑</span></div>");
+                    var clearScoreButton = $("<div style='float: left; margin-left: 5px;'><img style='position: relative; margin-top: 2px;' src='/static/img/refresh.png'/><span style='margin-left: 4px; position: relative;'>积分清零</span></div>");
                     container.append(addButton);
                     container.append(deleteButton);
                     container.append(editButton);
+                    container.append(clearScoreButton);
                     statusbar.append(container);
                     addButton.jqxButton({  width: 60, height: 20 });
                     deleteButton.jqxButton({  width: 65, height: 20 });
                     editButton.jqxButton({  width: 65, height: 20 });
+                    clearScoreButton.jqxButton({  width: 80, height: 20 });
                     // add new row.
                     addButton.click(function (event) {
                         $("#addPlayerButton").show();
@@ -170,7 +172,7 @@
                         if (selectedrowindex != -1) {
                             var name = grid.jqxGrid('getcellvalue', selectedrowindex, "name")
                             var id = grid.jqxGrid('getrowid', selectedrowindex);
-                            if (confirm("Are you sure to delete " + name + "?")) {
+                            if (confirm("你确定要删除 " + name + " 吗?")) {
                                 $.ajax({
                                     "url":"/admin/delPlayer",
                                     "method":"POST",
@@ -207,12 +209,29 @@
                             $("#addPlayerWindow").jqxWindow('open');
                         }
                     });
+                    clearScoreButton.click(function () {
+                        if (confirm("你确定要清除所有玩家的积分么？")) {
+                            $.ajax({
+                                "url":"/admin/clearScoreOfAllPlayers",
+                                "method":"POST",
+                                "dataType":"json",
+                                "success":function (data) {
+                                    if (data.code == 0) {
+                                        playerAdapter.dataBind();
+                                    } else {
+                                        alert(data.message)
+                                    }
+                                }
+                            });
+                        }
+                    });
                 },
                 columns: [
                   { text: 'ID', datafield: 'id', columntype: 'textbox', width: 120 },
                   { text: '用户名', datafield: 'name', columntype: 'textbox', width: 120 },
                   { text: '电话号码', datafield: 'phone', columntype: 'textbox', width: 170 },
                   { text: '创建时间', datafield: 'createDate', columntype: 'textbox', width: 170 },
+                  { text: '积分', datafield: 'score', columntype: 'textbox', width: 170 },
                   { text: '备注', datafield: 'comment', columntype: 'textbox' },
                 ]
             });

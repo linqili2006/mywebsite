@@ -1,0 +1,26 @@
+安装部署：
+1. 下载安装vc++ 2015:
+    https://www.microsoft.com/en-us/download/details.aspx?id=48145
+2. 下载安装apache：
+    http://www.apachelounge.com/download/VC15/binaries/httpd-2.4.33-win64-VC15.zip
+3. 下载安装python：
+    https://www.python.org/ftp/python/2.7.15/python-2.7.15.amd64.msi
+4. 将website拷贝到c:\，执行
+    python db_create.py
+5. 配置apache:
+    将mod_wsgi.so拷贝到apache的modules目录下
+    向httpd.conf写入以下配置：
+        LoadModule vhost_alias_module modules/mod_vhost_alias.so
+        LoadModule wsgi_module modules/mod_wsgi.so
+
+        Listen 8000
+        <VirtualHost *:8000 >  
+        ServerAdmin example@company.com  
+        DocumentRoot c:\website
+        <Directory "c:\website">  
+        Require all granted
+        Require host ip
+        </Directory>  
+        WSGIScriptAlias / c:\website\wsgi.py
+        </VirtualHost>
+6. 运行apache
